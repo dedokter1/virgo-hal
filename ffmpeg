@@ -1,0 +1,27 @@
+
+#!/bin/bash
+
+device=$(v4l2-ctl --list-devices | sed -n '/usbtv/{n;p}')
+
+echo $device 
+if [ "$device" = "" ]; then
+  echo 'No usbtv found'
+  exit 0
+fi
+
+v4l2-ctl --device $device -i 1 -s PAL-I
+
+filename="GE_capture_$(date +%d-%m-%Y)_$1.mkv"
+
+
+if [ -f '$filename' ]; 
+then
+  echo '$filename already exists'
+else
+  echo 'good to go!'
+  ffmpeg -f v4l2 -thread_queue_size 1024 -i $device \
+-f alsa -thread_queue_size 1024 -i hw:1,0 -c:v libx264 \
+-c:a copy -preset ultrafast -force_key_frames 00:00:00.000 -pix_fmt yuv420p -crf 17 \
+-vf yadif $filename
+fi
+
